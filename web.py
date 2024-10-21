@@ -5,12 +5,24 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-API_URL = os.getenv("HUGGING_FACE_API_URL")
-headers = {'Authorization': f'Bearer {os.getenv("HUGGING_FACE_API_KEY")}'}
 
-def query(data):
-    response = requests.request('POST', API_URL, headers=headers, data=data)
-    return json.loads(response.content.decode('utf-8'))
+# NSFW Image Detection API URL
+NSFW_API_URL = "https://api-inference.huggingface.co/models/Falconsai/nsfw_image_detection"
+
+API_KEY = os.getenv("HUGGING_FACE_API_KEY")
+
+headers = {
+    'Authorization': f'Bearer {API_KEY}',
+    'Content-Type': 'application/octet-stream'
+}
+
+# Function to send image data to the Hugging Face API
+def query_image(image_data):
+    response = requests.post(NSFW_API_URL, headers=headers, data=image_data)
+    if response.status_code == 200:
+        return json.loads(response.content.decode("utf-8"))
+    else:
+        return {"error": "Model request failed", "status_code": response.status_code}
 
 app = Flask(__name__)
 
@@ -20,14 +32,26 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload():
+    # Get the uploaded image file
     file = request.files['file1']
-    modeldata = query(file)
+    
+    # Read the image data
+    image_data = file.read()
 
+    # Send image data to the Hugging Face model API
+    model_response = query_image(image_data)
+
+    if "error" in model_response:
+        return jsonify(model_response)
+
+    # Format predictions for better readability
     predictions = [
         {'label': entry['label'], 'score': round(entry['score'] * 100, 2)} 
-        for entry in modeldata
+        for entry in model_response
     ]
-    # Passing the result to be displayed on the page
+
+    # Pass the predictions to be displayed on the page
     return render_template('index.html', predictions=predictions)
 
-app.run(host='0.0.0.0', port=81)
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=81)
