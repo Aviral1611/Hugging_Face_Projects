@@ -15,6 +15,7 @@ This project is a web application that uses the Hugging Face API to detect Not S
 - Web interface for image upload
 - Integration with Hugging Face's NSFW image detection model
 - Display of prediction results with labels and confidence scores
+- More to come!
 
 ## Prerequisites
 - Python 3.x
